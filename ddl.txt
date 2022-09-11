@@ -1,0 +1,4 @@
+CREATE TABLE public.color (
+	color_id serial4 NOT NULL,
+	color_name text NULL
+);
