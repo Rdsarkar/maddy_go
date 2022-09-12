@@ -21,16 +21,26 @@ func (colorService *ColorService) GetAllColorService(c *gin.Context) {
 func (colorService *ColorService) GetSingleColorService(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Writer.Header().Set("Content-Type", "application/json")
-	var color model.Color
-	c.ShouldBind(&color)
+	var output model.Color
+	c.ShouldBind(&output)
 	colorRepository := new(repository.ColorRepository)
-	myOutput := colorRepository.GetByID(color)
+	myOutput := colorRepository.GetByID(output)
 	c.JSON(myOutput.StatusCode, myOutput)
 }
 
+func (colorService *ColorService) InsertColorService(c *gin.Context) {
+	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	c.Writer.Header().Set("Content-Type", "application/json")
+	var output model.Color
+	c.ShouldBind(&output)
+	colorRepository := new(repository.ColorRepository)
+	myOutput := colorRepository.Insert(output)
+	c.JSON(myOutput.StatusCode, myOutput)
+}
 
 
 func (colorService *ColorService) AddRouters(router *gin.Engine){
 	router.GET("/getallcolor", colorService.GetAllColorService)
 	router.POST("/getsinglecolor", colorService.GetSingleColorService)
+	router.POST("/insertcolor", colorService.InsertColorService)
 }
