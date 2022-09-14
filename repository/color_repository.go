@@ -156,7 +156,7 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 	result0 := tx.Where("color_id = ?", color.Color_id).First(&output1)
 	id := strconv.Itoa(color.Color_id)
 	if result0.RowsAffected == 0 {
-		output.Message = "this id "+id+" Not Found"
+		output.Message = "this id " + id + " Not Found"
 		output.IsSuccess = false
 		output.Payload = nil
 		output.StatusCode = http.StatusNotFound
@@ -221,6 +221,80 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 	var tOutput tempOutput
 	tOutput.Output = color
 	output.Message = "Color updated successfully"
+	output.IsSuccess = true
+	output.Payload = tOutput
+	output.StatusCode = http.StatusOK
+	return output
+}
+
+// delete color
+func (colorRepository *ColorRepository) Delete(color model.Color) custommodel.ResponseDto {
+	var output custommodel.ResponseDto
+	if color.Color_id == 0 {
+		output.Message = "Color ID is required"
+		output.IsSuccess = false
+		output.Payload = nil
+		output.StatusCode = http.StatusBadRequest
+		return output
+	}
+
+	db := util.CreateConnectionUsingGormToCommonSchema()
+	sqlDB, _ := db.DB()
+	defer sqlDB.Close()
+
+	tx := db.Begin()
+	tx.SavePoint("savepoint")
+
+	result0 := db.Where("color_id = ?", color.Color_id).First(&color)
+	id := strconv.Itoa(color.Color_id)
+	if result0.RowsAffected == 0 {
+		output.Message = "this id " + id + " Not Found"
+		output.IsSuccess = false
+		output.Payload = nil
+		output.StatusCode = http.StatusNotFound
+		return output
+	}
+
+	var archColor model.Color_archive
+	var output2 model.Color_archive
+	archColor.Color_id = color.Color_id
+	archColor.Color_name = color.Color_name
+	dt := time.Now()
+	archColor.Changedate = dt.Format("2006-01-02 15:04:05")
+	archColor.Changeflag = "Delete"
+
+	_ = db.Raw("select coalesce ((max(trackid) + 1), 1) from public.color_archive").First(&output2.Trackid)
+
+	archColor.Trackid = output2.Trackid
+	archColor.Changeuser = "Admin"
+	result2 := tx.Create(&archColor)
+	if result2.RowsAffected == 0 {
+		output.Message = "Internal Server Error"
+		output.IsSuccess = false
+		output.Payload = nil
+		output.StatusCode = http.StatusInternalServerError
+		tx.RollbackTo("savepoint")
+		return output
+	}
+
+	result := db.Where("color_id = ?", color.Color_id).Delete(&color)
+	if result.RowsAffected == 0 {
+		output.Message = "Color is not deleted for Internal Server Error"
+		output.IsSuccess = false
+		output.Payload = nil
+		output.StatusCode = http.StatusInternalServerError
+		return output
+	}
+
+	tx.Commit()
+
+	type tempOutput struct {
+		Output model.Color `json:"output"`
+	}
+
+	var tOutput tempOutput
+	tOutput.Output = color
+	output.Message = "Color deleted successfully"
 	output.IsSuccess = true
 	output.Payload = tOutput
 	output.StatusCode = http.StatusOK
