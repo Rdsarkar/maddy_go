@@ -41,10 +41,10 @@ func (colorService *ColorService) InsertColorService(c *gin.Context) {
 func (colorService *ColorService) UpdateColorService(c *gin.Context) {
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	c.Writer.Header().Set("Content-Type", "application/json")
-	var c1 model.Color
-	c.ShouldBind(&c1)
+	var output model.Color
+	c.ShouldBind(&output)
 	colorRepository := new(repository.ColorRepository)
-	myOutput := colorRepository.Update(c1)
+	myOutput := colorRepository.Update(output)
 	c.JSON(myOutput.StatusCode, myOutput)
 }
 

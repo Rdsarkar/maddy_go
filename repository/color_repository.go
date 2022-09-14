@@ -2,15 +2,16 @@ package repository
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
-	
+
 	"github.com/godemo/model"
 	"github.com/godemo/model/custommodel"
 	"github.com/godemo/util"
 )
 
-type ColorRepository struct {}
+type ColorRepository struct{}
 
 // GetALL
 func (colorRepository *ColorRepository) GetAll() custommodel.ResponseDto {
@@ -19,7 +20,7 @@ func (colorRepository *ColorRepository) GetAll() custommodel.ResponseDto {
 	db := util.CreateConnectionUsingGormToCommonSchema()
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
-	
+
 	var color []model.Color
 	result := db.Order("color_id desc").Find(&color)
 
@@ -33,7 +34,7 @@ func (colorRepository *ColorRepository) GetAll() custommodel.ResponseDto {
 
 	type tempOutput struct {
 		Output      []model.Color `json:"output"`
-		OutputCount int             `json:"outputCount"`
+		OutputCount int           `json:"outputCount"`
 	}
 	var tOutput tempOutput
 	tOutput.Output = color
@@ -97,7 +98,7 @@ func (colorRepository *ColorRepository) Insert(color model.Color) custommodel.Re
 	var output1 model.Color
 	result1 := db.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).First(&output1)
 	if result1.RowsAffected > 0 {
-		output.Message = color.Color_name+" Color already exists"
+		output.Message = color.Color_name + " Color already exists"
 		output.IsSuccess = false
 		output.Payload = nil
 		output.StatusCode = http.StatusConflict
@@ -106,7 +107,6 @@ func (colorRepository *ColorRepository) Insert(color model.Color) custommodel.Re
 	// ID Autoincrement
 	_ = db.Raw("select coalesce ((max(color_id) + 1), 1) from public.color").First(&color.Color_id)
 
-	
 	result := db.Create(&color)
 	if result.RowsAffected == 0 {
 		output.Message = "Color not inserted for Internal Server Error"
@@ -137,7 +137,6 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 		output.StatusCode = http.StatusBadRequest
 		return output
 	}
-
 	if color.Color_name == "" {
 		output.Message = "Color name is required"
 		output.IsSuccess = false
@@ -154,25 +153,35 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 	tx.SavePoint("savepoint")
 
 	var output1 model.Color
-	result1 := db.Where(&model.Color{Color_id: color.Color_id}).First(&output1)
-	if result1.RowsAffected == 0 {
-		output.Message = "No data found"
+	result0 := tx.Where("color_id = ?", color.Color_id).First(&output1)
+	id := strconv.Itoa(color.Color_id)
+	if result0.RowsAffected == 0 {
+		output.Message = "this id "+id+" Not Found"
 		output.IsSuccess = false
 		output.Payload = nil
 		output.StatusCode = http.StatusNotFound
-		tx.SavePoint("savepoint")
+		return output
+	}
+
+	result1 := db.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).First(&output1)
+	if result1.RowsAffected > 0 {
+		output.Message = color.Color_name + " Color already exists"
+		output.IsSuccess = false
+		output.Payload = nil
+		output.StatusCode = http.StatusConflict
 		return output
 	}
 
 	var archColor model.Color_archive
 	var output2 model.Color_archive
-	archColor.Color_id = output1.Color_id
-	archColor.Color_name = output1.Color_name
+	archColor.Color_id = color.Color_id
+	archColor.Color_name = color.Color_name
 	dt := time.Now()
 	archColor.Changedate = dt.Format("2006-01-02 15:04:05")
 	archColor.Changeflag = "Update"
 
-	_ = db.Raw("select coalesce ((max(trackid) + 1), 1) from public.color").First(&output2.Trackid)
+	_ = db.Raw("select coalesce ((max(trackid) + 1), 1) from public.color_archive").First(&output2.Trackid)
+
 	archColor.Trackid = output2.Trackid
 	archColor.Changeuser = "Admin"
 	result2 := tx.Create(&archColor)
@@ -185,10 +194,9 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 		return output
 	}
 
-	
-	result3 := db.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).Where("color_id = ?", color.Color_id).First(&output1)
+	result3 := tx.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).First(&output1)
 	if result3.RowsAffected > 0 {
-		output.Message = color.Color_name+" Color already exists"
+		output.Message = color.Color_name + " Color already exists"
 		output.IsSuccess = false
 		output.Payload = nil
 		output.StatusCode = http.StatusConflict
@@ -196,22 +204,22 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 		return output
 	}
 
-	result := db.Model(&model.Color{Color_id: color.Color_id}).Updates(&output1)
+	result := db.Model(&color).Where(&model.Color{Color_id: color.Color_id}).Updates(&color)
 	if result.RowsAffected == 0 {
-		output.Message = "Color not updated for Internal Server Error"
+		output.Message = "Color is not updated for Internal Server Error"
 		output.IsSuccess = false
 		output.Payload = nil
 		output.StatusCode = http.StatusInternalServerError
-		tx.RollbackTo("savepoint")
 		return output
 	}
 
 	tx.Commit()
+
 	type tempOutput struct {
 		Output model.Color `json:"output"`
 	}
 	var tOutput tempOutput
-	tOutput.Output = output1
+	tOutput.Output = color
 	output.Message = "Color updated successfully"
 	output.IsSuccess = true
 	output.Payload = tOutput
