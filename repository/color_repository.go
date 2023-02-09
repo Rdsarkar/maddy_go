@@ -28,7 +28,7 @@ func (colorRepository *ColorRepository) GetAll() custommodel.ResponseDto {
 		output.Message = "Srver Error So no data found"
 		output.IsSuccess = false
 		output.Payload = nil
-		output.StatusCode = http.StatusInternalServerError
+		output.StatusCode = http.StatusNotFound
 		return output
 	}
 
@@ -163,7 +163,7 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 		return output
 	}
 
-	result1 := db.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).First(&output1)
+	result1 := tx.Where("lower(color_name) = ?", strings.ToLower(color.Color_name)).First(&output1)
 	if result1.RowsAffected > 0 {
 		output.Message = color.Color_name + " Color already exists"
 		output.IsSuccess = false
@@ -180,7 +180,7 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 	archColor.Changedate = dt.Format("2006-01-02 15:04:05")
 	archColor.Changeflag = "Update"
 
-	_ = db.Raw("select coalesce ((max(trackid) + 1), 1) from public.color_archive").First(&output2.Trackid)
+	_ = tx.Raw("select coalesce ((max(trackid) + 1), 1) from public.color_archive").First(&output2.Trackid)
 
 	archColor.Trackid = output2.Trackid
 	archColor.Changeuser = "Admin"
@@ -204,7 +204,7 @@ func (colorRepository *ColorRepository) Update(color model.Color) custommodel.Re
 		return output
 	}
 
-	result := db.Model(&color).Where(&model.Color{Color_id: color.Color_id}).Updates(&color)
+	result := tx.Model(&color).Where(&model.Color{Color_id: color.Color_id}).Updates(&color)
 	if result.RowsAffected == 0 {
 		output.Message = "Color is not updated for Internal Server Error"
 		output.IsSuccess = false
