@@ -16,7 +16,23 @@ import (
 var (
 	_version = "default"
 )
+// @title ABLOOMAPI
+// @version 2.0
+// @description An API to perform AbloomERP
+// @termsOfService http://swagger.io/terms/
 
+// @contact.name Sumon Sarker
+// @contact.email suman@satcombd.com
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:8081
+// @BasePath /
+// @schemes http
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 func main() {
 	fmt.Println("Starting Go Demo Service ", _version)
 	defer fmt.Println("Done....")

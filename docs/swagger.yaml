@@ -1,0 +1,22 @@
+basePath: /
+host: localhost:8081
+info:
+  contact:
+    email: suman@satcombd.com
+    name: Sumon Sarker
+  description: An API to perform AbloomERP
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: ABLOOMAPI
+  version: "2.0"
+paths: {}
+schemes:
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

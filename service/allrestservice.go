@@ -10,11 +10,14 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	_ "github.com/godemo/docs"
 )
 
 var _logger = logrus.New()
 
-//APIResponse returns the service response
+// APIResponse returns the service response
 type APIResponse struct {
 	Message   string      `json:"serviceMessage"`
 	Payload   interface{} `json:"payload,omitempty"`
@@ -23,12 +26,12 @@ type APIResponse struct {
 	Token     *string     `json:"token,omitempty"`
 }
 
-//TbsCommonRestService implements the rest API for HRM transactions
+// TbsCommonRestService implements the rest API for HRM transactions
 type AllRestService struct {
-	colorService   *ColorService
+	colorService *ColorService
 }
 
-//NewSobarRestService retuens a new initialized version of the service
+// NewSobarRestService retuens a new initialized version of the service
 func NewJOTRestService(config []byte, verbose bool) *AllRestService {
 	service := new(AllRestService)
 	if err := service.Init(config, verbose); err != nil {
@@ -38,7 +41,7 @@ func NewJOTRestService(config []byte, verbose bool) *AllRestService {
 	return service
 }
 
-//Init initializes the service
+// Init initializes the service
 func (allRestService *AllRestService) Init(config []byte, verbose bool) error {
 	if verbose {
 		_logger.SetLevel(logrus.DebugLevel)
@@ -49,7 +52,7 @@ func (allRestService *AllRestService) Init(config []byte, verbose bool) error {
 	return nil
 }
 
-//Serve runs the infinite service method.
+// Serve runs the infinite service method.
 func (allRestService *AllRestService) Serve(address string, port int, stopSignal chan bool) {
 	//gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
@@ -62,12 +65,13 @@ func (allRestService *AllRestService) Serve(address string, port int, stopSignal
 	corsConfig.AddExposeHeaders("Authorization", "WWW-Authenticate", "Content-Type", "Accept", "X-Requested-With")
 	router.Use(cors.New(corsConfig))
 	// JWT Auth handler
-	
+
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, buildResponse(true, "Service Available", nil))
 	})
 
 	allRestService.colorService.AddRouters(router)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	//ReportGeneration service
 	httpServer := &http.Server{
